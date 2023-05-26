@@ -20,7 +20,7 @@ class ROIBoxHead(torch.nn.Module):
         self.predictor = make_roi_box_predictor(cfg, self.feature_extractor.out_channels)
         self.post_processor = make_roi_box_post_processor(cfg)
         self.loss_evaluator = make_roi_box_loss_evaluator(cfg)
-        self.pre_detected_boxes = cfg.TEST.PRE_DETECTED_BOX
+        self.force_boxes = cfg.MODEL.RPN.FORCE_BOXES
 
     def forward(self, features, proposals, targets=None):
         """
@@ -45,13 +45,15 @@ class ROIBoxHead(torch.nn.Module):
 
         # extract features that will be fed to the final classifier. The
         # feature_extractor generally corresponds to the pooler + heads
-        import ipdb;ipdb.set_trace()
+
         x = self.feature_extractor(features, proposals)
         # final classifier that converts the features into predictions
         class_logits, box_regression = self.predictor(x)
+
         if not self.training:
             result = self.post_processor((class_logits, None), proposals, x, True)
-            result_i = self.post_processor((class_logits, box_regression), proposals, x, False)
+            result_i = self.post_processor((class_logits, box_regression), proposals, x, ignore_box_regression=self.force_boxes) #False
+            # import ipdb;ipdb.set_trace()
             det_feats = self.feature_extractor(features, result_i).mean((2, 3))
             result_det = {"bbox_det": result_i[0].bbox, "scores_det": result_i[0].get_field('scores'), "labels_det": result_i[0].get_field('labels'), 'det_feats': det_feats}
             result[0].extra_fields.update(result_det)

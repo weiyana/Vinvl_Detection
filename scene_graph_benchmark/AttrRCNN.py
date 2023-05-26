@@ -68,7 +68,7 @@ class AttrRCNN(GeneralizedRCNN):
         if targets:
             targets = [target.to(self.device)
                        for target in targets if target is not None]
-
+ 
         if self.force_boxes:
             proposals = [BoxList(target.bbox, target.size, target.mode)
                          for target in targets]

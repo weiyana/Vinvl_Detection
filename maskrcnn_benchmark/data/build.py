@@ -35,6 +35,9 @@ def build_dataset(cfg, transforms, dataset_catalog, is_train=True):
             "dataset_list should be a list of strings, got {}".format(dataset_list))
     if not isinstance(factory_list, (list, tuple)):
         raise RuntimeError("factory_list should be a list of strings, got {}".format(factory_list))
+    
+    force_box=cfg.MODEL.RPN.FORCE_BOXES
+    force_box_path=cfg.MODEL.RPN.FORCE_BOXES_PATH
 
     datasets = []
     for i, dataset_name in enumerate(dataset_list):
@@ -57,6 +60,10 @@ def build_dataset(cfg, transforms, dataset_catalog, is_train=True):
         #     if data["factory"] == "PascalVOCDataset":
         #         args["use_difficult"] = not is_train
         args["transforms"] = transforms
+        args["force_box"] = force_box
+        args["force_box_path"] = force_box_path
+
+
         # make dataset from factory
         dataset = factory(**args)
         datasets.append(dataset)
@@ -167,6 +174,7 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
     DatasetCatalog = paths_catalog.DatasetCatalog
 
     # If bbox aug is enabled in testing, simply set transforms to None and we will apply transforms later
+
     transforms = None if not is_train and cfg.TEST.BBOX_AUG.ENABLED else build_transforms(cfg, is_train)
     datasets = build_dataset(cfg, transforms, DatasetCatalog, is_train or is_for_period)
 

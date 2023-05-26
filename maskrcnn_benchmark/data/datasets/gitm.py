@@ -15,6 +15,8 @@ import cv2
 from PIL import Image
 import os.path as osp
 import os
+from maskrcnn_benchmark.structures.bounding_box import BoxList
+import pickle as pkl
 
 
 # VG data loader for Danfei Xu's Scene graph focused format.
@@ -56,7 +58,7 @@ def _box_filter(boxes, must_overlap=False):
 
 class GITMDataset(Dataset):
     def __init__(self, yaml_file, extra_fields=(), transforms=None,
-            is_load_label=True, **kwargs):
+            is_load_label=True, force_box=False, force_box_path='', **kwargs):
 
         super(GITMDataset, self).__init__()
 
@@ -95,19 +97,32 @@ class GITMDataset(Dataset):
         # imagelist = os.listdir(self.data_path)
         with open('/public/home/weiyn1/coding/uniter/data_wyn/img_ids/img_ids_test.json','r') as f:
             imagelist = json.load(f)
-        # save_dir='/storage/group/hexm/weiyn/refreasoning/det_results/vinvl_NMS0p4_th0p1_max100_min10_test/inference/vinvl_vg_x152c4/'
-        # image_list=get_unprocessed_img_ids(imagelist, save_dir)
+        imagelist=['2378852']
+
+        for_unprocessed=False
+        if for_unprocessed:
+            save_dir='/storage/group/hexm/weiyn/refreasoning/det_results/vinvl_with_fastrcnn_boxes/inference/vinvl_vg_x152c4/'
+            image_list=get_unprocessed_img_ids(imagelist, save_dir)
+        else:
+            image_list = imagelist
         
         # image_list = list(imagelist.keys())[25000:]
         # random.seed(10)
         # random.shuffle(image_list)
-        image_list = imagelist
+        # image_list = imagelist
 
         print('num_image:', len(image_list))
         self.image_list = image_list
         self.transform = transforms
+    
+        self.force_box=force_box
+        self.det_res_path=force_box_path
 
-        self.det_res_folder = '/storage/group/hexm/weiyn/refreasoning/det_results/faster_rcnn_x152_NMS0p3_th0p0_max100_min10'
+        if os.path.isfile(self.det_res_path):
+            print(f'use boxes from {self.det_res_path}')
+            with open(self.det_res_path,'rb') as f:
+                self.det_rois=pkl.load(f)
+        # self.det_res_path = '/storage/group/hexm/weiyn/refreasoning/det_results/faster_rcnn_x152_NMS0p3_th0p0_max100_min10'
     
     def __len__(self,):
         return len(self.image_list)
@@ -128,14 +143,24 @@ class GITMDataset(Dataset):
         img_name = self.image_list[index]
         # img_name = osp.basename(img_path)
         img = cv2.imread(osp.join(self.data_path, f'{img_name}.jpg'))
-        img_size = img.shape  # w, h
+        img_size = img.shape  # h,w,c
         img = cv2Img_to_Image(img)
 
-        proposals=np.load(osp.join(self.det_res_folder,f'{img_name}.npz'))['bbox']
-        img, _ = self.transform(img, target=None)
-        target=None
+        if self.force_box:
+            if os.path.isdir(self.det_res_path):
+                bboxes=np.load(osp.join(self.det_res_path,f'{img_name}.npz'))['bbox']
+            else:
+                bboxes=self.det_rois[img_name]['box']
+            proposals=BoxList(bboxes, img.size, mode="xyxy")
+        else:
+            proposals=None
+
+        # todo: box transform
+        # img, _ = self.transform(img, target=None)
+        img, proposals = self.transform(img, target=proposals)
+       
         
-        return img, img_size, img_name
+        return img, proposals, img_size, img_name
     
     def _get_freq_prior(self, must_overlap=False):
         fg_matrix = np.zeros((

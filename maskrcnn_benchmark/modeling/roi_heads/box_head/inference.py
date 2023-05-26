@@ -64,7 +64,7 @@ class PostProcessor(nn.Module):
             results (list[BoxList]): one BoxList for each image, containing
                 the extra fields labels and scores
         """
-
+      
         self.ignore_box_regression = ignore_box_regression
 
         if self.output_feature:
@@ -88,17 +88,27 @@ class PostProcessor(nn.Module):
             proposals = concat_boxes
         else:
             proposals = self.box_coder.decode(box_regression.view(sum(boxes_per_image), -1), concat_boxes)
-        if (self.cls_agnostic_bbox_reg or self.ignore_box_regression) and (self.cfg.MODEL.ROI_HEADS.NMS_FILTER != 2):
+        # if (self.cls_agnostic_bbox_reg or self.ignore_box_regression) and (self.cfg.MODEL.ROI_HEADS.NMS_FILTER != 2):
+   
+        proposals_=proposals
+        if (self.cls_agnostic_bbox_reg or self.ignore_box_regression) and (self.cfg.MODEL.ROI_HEADS.NMS_FILTER != 2): # and not self.force_boxes:
             proposals = proposals.repeat(1, class_prob.shape[1])
+        
 
         num_classes = class_prob.shape[1]
         proposals = proposals.split(boxes_per_image, dim=0)
+        proposals_ = proposals_.split(boxes_per_image, dim=0)
         class_prob = class_prob.split(boxes_per_image, dim=0)
         features = features.split(boxes_per_image, dim=0)
 
         results = []
-        for prob, boxes_per_img, image_shape, feature in zip(class_prob, proposals, image_shapes, features):
-            boxlist = self.prepare_boxlist(boxes_per_img, prob, image_shape)
+
+        for prob, boxes_per_img, boxes_per_img_, image_shape, feature in zip(class_prob, proposals, proposals_, image_shapes, features):
+            if self.force_boxes:
+                prob_=torch.max(prob[:, 1:], dim=1)[0]
+                boxlist = self.prepare_boxlist(boxes_per_img_, prob_, image_shape)
+            else:
+                boxlist = self.prepare_boxlist(boxes_per_img, prob, image_shape)
             boxlist = boxlist.clip_to_image(remove_empty=False)
             if self.force_boxes:
                 if len(boxlist) > 0:
@@ -110,7 +120,8 @@ class PostProcessor(nn.Module):
                     if self.output_feature:
                         boxlist.add_field('box_features', feature)
                         boxlist.add_field('scores_all', prob)
-                        boxlist.add_field('boxes_all', boxes_per_img.view(-1, 1, 4))
+                        # boxlist.add_field('boxes_all', boxes_per_img.view(-1, 1, 4))
+                        boxlist.add_field('boxes_all', boxes_per_img.view(-1, num_classes, 4))
                 else:
                     boxlist = self.prepare_empty_boxlist(boxlist)
             else:

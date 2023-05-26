@@ -49,7 +49,7 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, timer=None, output_
     cpu_device = torch.device("cpu")
     for _, batch in enumerate(tqdm(data_loader)):
         # images, targets, image_ids, scales = batch[0], batch[1], batch[2], batch[3:]
-        images, image_size, image_ids = batch[0], batch[1], batch[2]
+        images, proposals, image_size, image_ids = batch[0], batch[1], batch[2], batch[3]
         image_ids = image_ids[0].replace('.jpg', '.npz')
         outputfile = osp.join(output_folder, image_ids)
         
@@ -65,7 +65,9 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, timer=None, output_
             else:
                 try:
                     # output = model(images.to(device), targets)
-                    output = model(images.to(device))
+                    # output = model(images.to(device))
+                    output = model(images.to(device), proposals)
+                    
                 except RuntimeError as e:
                     image_ids_str = [str(img_id) for img_id in image_ids]
                     print("Runtime error occurred in Image Ids: {}".format(','.join(image_ids_str)))

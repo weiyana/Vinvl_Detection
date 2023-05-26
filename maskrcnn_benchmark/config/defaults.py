@@ -180,6 +180,7 @@ _C.MODEL.RPN.FPN_POST_NMS_PER_BATCH = True
 _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 # use gt target box as proposals for roi_heads (shared in training and testing)
 _C.MODEL.RPN.FORCE_BOXES = False
+_C.MODEL.RPN.FORCE_BOXES_PATH = ""
 
 
 # ---------------------------------------------------------------------------- #
@@ -512,8 +513,7 @@ _C.TEST.BBOX_AUG.SCALE_H_FLIP = False
 # Output feature
 _C.TEST.OUTPUT_FEATURE = False
 _C.TEST.IGNORE_BOX_REGRESSION = False
-_C.TEST.PRE_DETECTED_BOX = False
-_C.TEST.DET_BOX_FOLDER = ''
+
 
 
 
