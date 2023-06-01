@@ -52,8 +52,7 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, timer=None, output_
         images, proposals, image_size, image_ids = batch[0], batch[1], batch[2], batch[3]
         image_ids = image_ids[0].replace('.jpg', '.npz')
         outputfile = osp.join(output_folder, image_ids)
-        
-        if osp.isfile(outputfile):
+        if osp.isfile(f'{outputfile}.npz'):
             print(f'skip this image, already exist {outputfile}')
             continue
 

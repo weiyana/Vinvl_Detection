@@ -58,7 +58,7 @@ def _box_filter(boxes, must_overlap=False):
 
 class GITMDataset(Dataset):
     def __init__(self, yaml_file, extra_fields=(), transforms=None,
-            is_load_label=True, force_box=False, force_box_path='', **kwargs):
+            is_load_label=True, force_box=False, force_box_path='', data_path='',img_ids_path='', **kwargs):
 
         super(GITMDataset, self).__init__()
 
@@ -93,11 +93,13 @@ class GITMDataset(Dataset):
         #         prob_matrix /= np.sum(prob_matrix, 2)[:, :, None]
         #         np.save(self.freq_prior_file, prob_matrix)
 
-        self.data_path = "/storage/data/wuyu1/refreasoning/data/images"
+        self.data_path = data_path
         # imagelist = os.listdir(self.data_path)
-        with open('/public/home/weiyn1/coding/uniter/data_wyn/img_ids/img_ids_test.json','r') as f:
-            imagelist = json.load(f)
-        imagelist=['2378852']
+        if img_ids_path!='none':
+            with open(img_ids_path,'r') as f:
+                imagelist = json.load(f)
+        else:
+            imagelist=os.listdir(self.data_path)
 
         for_unprocessed=False
         if for_unprocessed:
@@ -117,6 +119,7 @@ class GITMDataset(Dataset):
     
         self.force_box=force_box
         self.det_res_path=force_box_path
+        
 
         if os.path.isfile(self.det_res_path):
             print(f'use boxes from {self.det_res_path}')
@@ -139,10 +142,15 @@ class GITMDataset(Dataset):
 
     #     return img, img_size, img_name
     def __getitem__(self, index):
-
+        # import ipdb;ipdb.set_trace()
         img_name = self.image_list[index]
+        suffix='jpg'
+        if img_name[-3:] in ['jpg','png']:
+            suffix=img_name[-3:]
+            img_name=img_name[:-4]
+            
         # img_name = osp.basename(img_path)
-        img = cv2.imread(osp.join(self.data_path, f'{img_name}.jpg'))
+        img = cv2.imread(osp.join(self.data_path, f'{img_name}.{suffix}'))
         img_size = img.shape  # h,w,c
         img = cv2Img_to_Image(img)
 

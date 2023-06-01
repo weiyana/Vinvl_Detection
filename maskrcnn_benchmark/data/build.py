@@ -38,6 +38,8 @@ def build_dataset(cfg, transforms, dataset_catalog, is_train=True):
     
     force_box=cfg.MODEL.RPN.FORCE_BOXES
     force_box_path=cfg.MODEL.RPN.FORCE_BOXES_PATH
+    data_path=cfg.TEST.DATA_PATH
+    img_ids_path=cfg.TEST.IMG_IDS_PATH
 
     datasets = []
     for i, dataset_name in enumerate(dataset_list):
@@ -62,6 +64,9 @@ def build_dataset(cfg, transforms, dataset_catalog, is_train=True):
         args["transforms"] = transforms
         args["force_box"] = force_box
         args["force_box_path"] = force_box_path
+        args["data_path"] = data_path
+        args["img_ids_path"] = img_ids_path
+
 
 
         # make dataset from factory
